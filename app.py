@@ -10,6 +10,7 @@ import streamlit as st
 
 import streamlit_ext as ste
 
+from st_files_connection import FilesConnection
 
 from sentence_transformers import SentenceTransformer
 
@@ -25,17 +26,19 @@ from google.cloud import storage
 
 from io import BytesIO
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ds-research-playground-d3bb9f4b9084.json"
+# os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ds-research-playground-d3bb9f4b9084.json"
 
 bucket_name = "datasets-datascience-team"
 
 list_of_keywords_blob_name =  "datasets-datascience-team/Streamlit_apps_datasets/Keyword_suggestor_datasets/extracted_list_of_keywords.pkl"
 index_blob_name = "datasets-datascience-team/Streamlit_apps_datasets/Keyword_suggestor_datasets/extracted_keywords_index.bin"
 
-client = storage.Client()
+# client = storage.Client()
 
 import faiss
 from io import BytesIO
+
+conn = st.connection('gcs', type=FilesConnection)
 
 # Custom callback reader for reading from bytes
 class BytesReader:
@@ -88,10 +91,11 @@ st.title("Smart Keyword Suggestor")
 
 if "init" not in st.session_state or not st.session_state.init:
     with st.spinner("Setting everything up..."):
-        index = read_gcp_bin_into_faiss_index(bucket_name, index_blob_name, client)
+        # index = read_gcp_bin_into_faiss_index(bucket_name, index_blob_name, client)
+        index = conn.read(bucket_name+"/"+index_blob_name, input_format="csv", ttl=600)
         st.session_state.index = index
-        # extracted_keywords = pd.read_pickle('/Users/abiolatresordjigui/DM/streamlit-apps/Data/extracted_list_of_keywords.pkl')["Keyword"].to_list()
-        extracted_keywords = read_gcp_excel_csv_into_pd_df(bucket_name, list_of_keywords_blob_name, client)["Keyword"].to_list()
+        # extracted_keywords = read_gcp_excel_csv_into_pd_df(bucket_name, list_of_keywords_blob_name, client)["Keyword"].to_list()
+        extracted_keywords = conn.read(bucket_name+"/"+list_of_keywords_blob_name, input_format="csv", ttl=600)
         st.session_state.extracted_keywords = extracted_keywords
         model = SentenceTransformer('all-MiniLM-L6-v2')
         st.session_state.model = model
