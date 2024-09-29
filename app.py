@@ -92,10 +92,10 @@ st.title("Smart Keyword Suggestor")
 if "init" not in st.session_state or not st.session_state.init:
     with st.spinner("Setting everything up..."):
         # index = read_gcp_bin_into_faiss_index(bucket_name, index_blob_name, client)
-        index = conn.read(bucket_name+"/"+index_blob_name, input_format="csv", ttl=600)
+        index = conn.read(bucket_name+"/"+index_blob_name, input_format="binary", ttl=600)
         st.session_state.index = index
         # extracted_keywords = read_gcp_excel_csv_into_pd_df(bucket_name, list_of_keywords_blob_name, client)["Keyword"].to_list()
-        extracted_keywords = conn.read(bucket_name+"/"+list_of_keywords_blob_name, input_format="csv", ttl=600)
+        extracted_keywords = conn.read(bucket_name+"/"+list_of_keywords_blob_name, input_format="pickle", ttl=600)
         st.session_state.extracted_keywords = extracted_keywords
         model = SentenceTransformer('all-MiniLM-L6-v2')
         st.session_state.model = model
