@@ -47,8 +47,8 @@ credentials = service_account.Credentials.from_service_account_info(gcs_credenti
 
 bucket_name = "datasets-datascience-team"
 
-list_of_keywords_blob_name =  "datasets-datascience-team/Streamlit_apps_datasets/Keyword_suggestor_datasets/extracted_list_of_keywords.pkl"
-index_blob_name = "datasets-datascience-team/Streamlit_apps_datasets/Keyword_suggestor_datasets/extracted_keywords_index.bin"
+list_of_keywords_blob_name =  "datasets-datascience-team/Streamlit_apps_datasets/Keyword_suggestor_datasets/extracted_list_of_keywords_nb_4.pkl"
+index_blob_name = "datasets-datascience-team/Streamlit_apps_datasets/Keyword_suggestor_datasets/extracted_keywords_index_nb_4.bin"
 
 # client = storage.Client()
 client = storage.Client(credentials=credentials, project=gcs_credentials["project_id"])
