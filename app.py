@@ -10,7 +10,7 @@ import streamlit as st
 
 import streamlit_ext as ste
 
-from st_files_connection import FilesConnection
+#from st_files_connection import FilesConnection
 
 from sentence_transformers import SentenceTransformer
 
@@ -23,10 +23,27 @@ import pandas as pd
 
 from google.cloud import storage
 # from google import cloud
+from google.oauth2 import service_account
 
 from io import BytesIO
 
 # os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ds-research-playground-d3bb9f4b9084.json"
+gcs_credentials = {
+    "type": st.secrets["gcs"]["type"],
+    "project_id": st.secrets["gcs"]["project_id"],
+    "private_key_id": st.secrets["gcs"]["private_key_id"],
+    "private_key": st.secrets["gcs"]["private_key"],
+    "client_email": st.secrets["gcs"]["client_email"],
+    "client_id": st.secrets["gcs"]["client_id"],
+    "auth_uri": st.secrets["gcs"]["auth_uri"],
+    "token_uri": st.secrets["gcs"]["token_uri"],
+    "auth_provider_x509_cert_url": st.secrets["gcs"]["auth_provider_x509_cert_url"],
+    "client_x509_cert_url": st.secrets["gcs"]["client_x509_cert_url"],
+    "universe_domain": st.secrets["gcs"]["universe_domain"]
+}
+
+credentials = service_account.Credentials.from_service_account_info(gcs_credentials)
+
 
 bucket_name = "datasets-datascience-team"
 
@@ -34,11 +51,13 @@ list_of_keywords_blob_name =  "datasets-datascience-team/Streamlit_apps_datasets
 index_blob_name = "datasets-datascience-team/Streamlit_apps_datasets/Keyword_suggestor_datasets/extracted_keywords_index.bin"
 
 # client = storage.Client()
+client = storage.Client(credentials=credentials, project=gcs_credentials["project_id"])
+
 
 import faiss
 from io import BytesIO
 
-conn = st.connection('gcs', type=FilesConnection)
+#conn = st.connection('gcs', type=FilesConnection)
 
 # Custom callback reader for reading from bytes
 class BytesReader:
@@ -91,11 +110,11 @@ st.title("Smart Keyword Suggestor")
 
 if "init" not in st.session_state or not st.session_state.init:
     with st.spinner("Setting everything up..."):
-        # index = read_gcp_bin_into_faiss_index(bucket_name, index_blob_name, client)
-        index = conn.read(bucket_name+"/"+index_blob_name, input_format="binary", ttl=600)
+        index = read_gcp_bin_into_faiss_index(bucket_name, index_blob_name, client)
+        # index = conn.read(bucket_name+"/"+index_blob_name, input_format="binary", ttl=600)
         st.session_state.index = index
-        # extracted_keywords = read_gcp_excel_csv_into_pd_df(bucket_name, list_of_keywords_blob_name, client)["Keyword"].to_list()
-        extracted_keywords = conn.read(bucket_name+"/"+list_of_keywords_blob_name, input_format="pickle", ttl=600)
+        extracted_keywords = read_gcp_excel_csv_into_pd_df(bucket_name, list_of_keywords_blob_name, client)["Keyword"].to_list()
+        # extracted_keywords = conn.read(bucket_name+"/"+list_of_keywords_blob_name, input_format="pickle", ttl=600)
         st.session_state.extracted_keywords = extracted_keywords
         model = SentenceTransformer('all-MiniLM-L6-v2')
         st.session_state.model = model
