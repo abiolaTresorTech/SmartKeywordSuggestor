@@ -27,7 +27,7 @@ from google.oauth2 import service_account
 
 from io import BytesIO
 
-# os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ds-research-playground-d3bb9f4b9084.json"
+#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ds-research-playground-d3bb9f4b9084.json"
 gcs_credentials = {
     "type": st.secrets["gcs"]["type"],
     "project_id": st.secrets["gcs"]["project_id"],
@@ -42,8 +42,6 @@ gcs_credentials = {
     "universe_domain": st.secrets["gcs"]["universe_domain"]
 }
 
-credentials = service_account.Credentials.from_service_account_info(gcs_credentials)
-
 
 bucket_name = "datasets-datascience-team"
 
@@ -51,6 +49,7 @@ list_of_keywords_blob_name =  "datasets-datascience-team/Streamlit_apps_datasets
 index_blob_name = "datasets-datascience-team/Streamlit_apps_datasets/Keyword_suggestor_datasets/extracted_keywords_index_nb_4.bin"
 
 # client = storage.Client()
+credentials = service_account.Credentials.from_service_account_info(gcs_credentials)
 client = storage.Client(credentials=credentials, project=gcs_credentials["project_id"])
 
 
@@ -162,21 +161,50 @@ def retrieve_documents(query, model,   k=20):
 
 def main():
 
-    query = st.text_input("Enter a topic here:", placeholder="My Topic")
-    if query:
-        retrieved_docs, scores = retrieve_documents(query, model)
-        result_data = pd.DataFrame({"Keyword":retrieved_docs, "Score":scores})
+    # query = st.text_input("Enter a topic here:", placeholder="My Topic")
+    uploaded_file = st.file_uploader("Choose a file", type=["csv"])
 
-        st.write("Response")
-        st.dataframe(result_data, use_container_width = True)
 
-        result_data_as_csv = convert_df_to_csv(result_data)
-        ste.download_button(
-        label="Download results as CSV",
-        data=result_data_as_csv,
-        file_name="suggested_keywords_for_{}.csv".format(query),
-        mime="text/csv",
-    )
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        expected_columns = ["Topic", "Description"]
+        columns_are_checked = all([elt in expected_columns for elt in df.columns])
+        if columns_are_checked:
+            topics2desc = df.groupby("Topic")["Description"].apply(list).to_dict()
+            output_topic2kw2score = {"Topic":[], "Keyword":[], "Score":[], "Query":[]}
+            for topic in topics2desc:
+                query = "Let's talk about this topic " + topic +". " + topics2desc[topic][0]
+                retrieved_docs, scores = retrieve_documents(query, model)
+                output_topic2kw2score["Topic"].extend([topic for _ in scores])
+                output_topic2kw2score["Keyword"].extend(retrieved_docs)
+                output_topic2kw2score["Score"].extend(scores)
+                output_topic2kw2score["Query"].extend([query for _ in scores])
+            output_topic2kw2score_df = pd.DataFrame.from_dict(output_topic2kw2score)
+            output_topic2kw2score_csv = convert_df_to_csv(output_topic2kw2score_df)
+            ste.download_button(
+            label="Download results as CSV",
+            data=output_topic2kw2score_csv,
+            file_name="suggested_keywords.csv".format(query),
+            mime="text/csv",
+        )
+        else:
+            st.error('Make sure you have these two columns spelled that same way: {}'.format(expected_columns), icon="🚨")
+
+
+    # if query:
+    #     retrieved_docs, scores = retrieve_documents(query, model)
+    #     result_data = pd.DataFrame({"Keyword":retrieved_docs, "Score":scores})
+
+    #     st.write("Response")
+    #     st.dataframe(result_data, use_container_width = True)
+
+    #     result_data_as_csv = convert_df_to_csv(result_data)
+    #     ste.download_button(
+    #     label="Download results as CSV",
+    #     data=result_data_as_csv,
+    #     file_name="suggested_keywords_for_{}.csv".format(query),
+    #     mime="text/csv",
+    # )
 
 if __name__ == "__main__":
     main()
